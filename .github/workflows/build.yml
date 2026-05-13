@@ -1,4 +1,4 @@
-name:归档新照片
+name: "归档新照片"
 
 on:
   push:
@@ -74,4 +74,4 @@ json.dump(data, open('page/photos.json','w'), ensure_ascii=False, indent=2)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add photos/ thumbs/ page/photos.json
-          git diff --staged --quiet || (git commit -m "归档新照片" && git push)
+          git diff --staged --quiet || (git commit -m "归档新照片" && git push) 
