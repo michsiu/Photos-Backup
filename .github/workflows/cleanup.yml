@@ -1,0 +1,49 @@
+name: 清理已删除照片
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'photos/**'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 清理缩略图并从 JSON 删除对应条目
+        run: |
+          git diff --name-only --diff-filter=D HEAD~1 HEAD | grep -E '^photos/.*\.(jpg|jpeg|png|webp|JPG|JPEG|PNG|WEBP)$' | while read file; do
+            
+            thumb="thumbs/${file#photos/}"
+            [ -f "$thumb" ] && rm "$thumb" && echo "删除缩略图: $thumb"
+            
+            relative_path="${file#photos/}"
+            python3 -c "
+import json
+with open('page/photos.json') as f:
+    data = json.load(f)
+keys_to_delete = [k for k, v in data.items() if v.get('path') == '$relative_path']
+for k in keys_to_delete:
+    del data[k]
+    print(f'从 JSON 删除: {k}')
+with open('page/photos.json', 'w') as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+"
+          done
+          find thumbs/ -type d -empty -delete 2>/dev/null || true
+
+      - name: 提交更改
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add thumbs/ page/photos.json
+          git diff --staged --quiet || (git commit -m "清理已删除照片 [skip ci]" && git push)
