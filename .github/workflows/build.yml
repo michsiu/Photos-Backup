@@ -1,4 +1,4 @@
-name: 归档新照片并构建相册
+name: Build Gallery
 
 on:
   push:
