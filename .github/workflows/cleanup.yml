@@ -2,7 +2,6 @@ name: 清理已删除照片
 
 on:
   push:
-    branches: [main]
     paths:
       - 'photos/**'
     paths-ignore:
