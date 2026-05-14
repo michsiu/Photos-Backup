@@ -3,14 +3,14 @@ name: Build Gallery
 on:
   push:
     paths:
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.png'
-      - '**/*.webp'
-      - '**/*.JPG'
-      - '**/*.JPEG'
-      - '**/*.PNG'
-      - '**/*.WEBP'
+      - '*.jpg'
+      - '*.jpeg'
+      - '*.png'
+      - '*.webp'
+      - '*.JPG'
+      - '*.JPEG'
+      - '*.PNG'
+      - '*.WEBP'
 
   workflow_dispatch:
 
@@ -42,7 +42,7 @@ jobs:
           mkdir -p thumbs
           mkdir -p page
 
-      - name: 归档照片（按年分类，重命名为 sha256）
+      - name: 归档照片
         run: |
           shopt -s nullglob
 
@@ -76,7 +76,7 @@ jobs:
 
           done
 
-      - name: 复制映射表到 page
+      - name: 复制映射表
         run: |
           cp filemap.txt page/filemap.txt
 
@@ -121,7 +121,82 @@ jobs:
 
       - name: 生成 photos.json
         run: |
-          python3 scripts/build_photos_json.py
+          cat > build_json.py <<'PY'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime
+
+          mapping = {}
+
+          try:
+              with open('filemap.txt') as f:
+                  for line in f:
+                      line = line.strip()
+
+                      if '|' in line:
+                          hashname, original = line.split('|', 1)
+                          mapping[hashname] = original
+          except:
+              pass
+
+          photos = {}
+
+          for root, dirs, files in os.walk('photos'):
+
+              for f in files:
+
+                  if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+
+                      filepath = os.path.join(root, f)
+
+                      relative_path = os.path.relpath(filepath, 'photos')
+
+                      year = relative_path.split('/')[0]
+
+                      full_date = ''
+
+                      try:
+                          exif_date = subprocess.check_output(
+                              [
+                                  'identify',
+                                  '-format',
+                                  '%[EXIF:DateTimeOriginal]',
+                                  filepath
+                              ],
+                              stderr=subprocess.DEVNULL
+                          ).decode().strip()
+
+                          if exif_date:
+                              full_date = exif_date.split(' ')[0].replace(':', '-')
+
+                      except:
+                          pass
+
+                      if not full_date:
+                          mtime = os.path.getmtime(filepath)
+
+                          full_date = datetime.fromtimestamp(
+                              mtime
+                          ).strftime('%Y-%m-%d')
+
+                      photos[f] = {
+                          'filename': mapping.get(f, f),
+                          'path': relative_path,
+                          'url': f'/photos/{relative_path}',
+                          'thumbnail': f'/thumbs/{relative_path}',
+                          'year': year,
+                          'date': full_date,
+                          'sha256': os.path.splitext(f)[0]
+                      }
+
+          with open('page/photos.json', 'w', encoding='utf-8') as f:
+              json.dump(photos, f, ensure_ascii=False, indent=2)
+
+          print(f'生成 {len(photos)} 条记录')
+          PY
+
+          python3 build_json.py
 
       - name: 提交所有更改
         run: |
