@@ -26,15 +26,9 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: 获取被删文件列表
+      - name: 清理缩略图并更新 JSON
         run: |
-          git diff --name-only --diff-filter=D HEAD~1 HEAD | grep -E '^photos/.*\.(jpg|jpeg|png|webp|JPG|JPEG|PNG|WEBP)$' > deleted.txt || true
-
-          cat deleted.txt || true
-
-      - name: 清理缩略图
-        run: |
-          while read file; do
+          git diff --name-only --diff-filter=D HEAD~1 HEAD | grep -E '^photos/.*\.(jpg|jpeg|png|webp|JPG|JPEG|PNG|WEBP)$' | while read file; do
 
             [ -z "$file" ] && continue
 
@@ -48,21 +42,13 @@ jobs:
 
             fi
 
-          done < deleted.txt
-
-          find thumbs/ -type d -empty -delete 2>/dev/null || true
-
-      - name: 从 JSON 删除
-        run: |
-          while read file; do
-
-            [ -z "$file" ] && continue
-
             rel="${file#photos/}"
 
             python3 scripts/cleanup.py "$rel"
 
-          done < deleted.txt
+          done
+
+          find thumbs/ -type d -empty -delete 2>/dev/null || true
 
       - name: 提交更改
         run: |
