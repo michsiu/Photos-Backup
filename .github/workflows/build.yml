@@ -28,7 +28,7 @@ jobs:
       - name: 安装依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y imagemagick unzip
+          sudo apt-get install -y imagemagick unzip uuid-runtime
 
       - name: 创建目录
         run: |
@@ -37,34 +37,44 @@ jobs:
           mkdir -p thumbs
           mkdir -p page
 
-      # =========================
+      # =========================================
       # 解压 ZIP
-      # =========================
+      # =========================================
       - name: 解压 ZIP 文件
         run: |
-          shopt -s globstar nullglob
+          shopt -s nullglob
 
-          find incoming -type f -iname "*.zip" | while read zipfile; do
+          mapfile -t zipfiles < <(
+            find incoming -type f -iname "*.zip"
+          )
+
+          for zipfile in "${zipfiles[@]}"; do
 
             [ -f "$zipfile" ] || continue
 
-            extract_dir=$(mktemp -d)
+            echo "解压 ZIP: $zipfile"
 
-            echo "解压: $zipfile"
+            extract_dir=$(mktemp -d)
 
             unzip -oq "$zipfile" -d "$extract_dir"
 
-            find "$extract_dir" -type f | while read extracted; do
+            mapfile -t extracted_files < <(
+              find "$extract_dir" -type f
+            )
+
+            for extracted in "${extracted_files[@]}"; do
 
               ext="${extracted##*.}"
 
               if echo "$ext" | grep -qiE '^(jpg|jpeg|png|webp)$'; then
 
-                base=$(basename "$extracted")
+                ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
 
-                mv "$extracted" "incoming/$base"
+                tmpname="$(uuidgen).$ext"
 
-                echo "提取文件: $base"
+                mv "$extracted" "incoming/$tmpname"
+
+                echo "提取文件: $tmpname"
 
               fi
 
@@ -78,34 +88,37 @@ jobs:
 
           done
 
-      # =========================
+      # =========================================
       # 处理图片
-      # =========================
+      # =========================================
       - name: 归档照片并更新 JSON
         run: |
           shopt -s nullglob
 
-          find incoming -type f \( \
-            -iname "*.jpg" -o \
-            -iname "*.jpeg" -o \
-            -iname "*.png" -o \
-            -iname "*.webp" \
-          \) | while read img; do
+          mapfile -t images < <(
+            find incoming -type f \( \
+              -iname "*.jpg" -o \
+              -iname "*.jpeg" -o \
+              -iname "*.png" -o \
+              -iname "*.webp" \
+            \)
+          )
+
+          for img in "${images[@]}"; do
 
             [ -f "$img" ] || continue
 
             sha256=$(sha256sum "$img" | cut -d' ' -f1)
 
             ext="${img##*.}"
-
             ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
 
-            # =========================
-            # 重复检测
-            # =========================
+            # =========================================
+            # 重复图片检测
+            # =========================================
             if find photos -type f | grep -q "/$sha256\."; then
 
-              echo "重复图片，跳过: $img"
+              echo "重复图片，删除: $img"
 
               rm -f "$img"
 
@@ -177,21 +190,25 @@ jobs:
 
             python3 scripts/build_entry.py
 
-            echo "归档: $original_name → $year/$hashname"
+            echo "归档完成: $original_name → $year/$hashname"
 
           done
 
-      # =========================
-      # 缩略图
-      # =========================
+      # =========================================
+      # 生成缩略图
+      # =========================================
       - name: 生成缩略图
         run: |
-          find photos -type f \( \
-            -iname "*.jpg" -o \
-            -iname "*.jpeg" -o \
-            -iname "*.png" -o \
-            -iname "*.webp" \
-          \) | while read img; do
+          mapfile -t photo_files < <(
+            find photos -type f \( \
+              -iname "*.jpg" -o \
+              -iname "*.jpeg" -o \
+              -iname "*.png" -o \
+              -iname "*.webp" \
+            \)
+          )
+
+          for img in "${photo_files[@]}"; do
 
             relative_path="${img#photos/}"
 
@@ -205,18 +222,22 @@ jobs:
 
               convert "$img" -resize 400x -quality 80 "$thumb_path"
 
-              echo "缩略图: $relative_path"
+              echo "生成缩略图: $relative_path"
 
             fi
 
           done
 
-      # =========================
+      # =========================================
       # 清理孤儿缩略图
-      # =========================
+      # =========================================
       - name: 清理多余缩略图
         run: |
-          find thumbs -type f | while read thumb; do
+          mapfile -t thumbs_files < <(
+            find thumbs -type f
+          )
+
+          for thumb in "${thumbs_files[@]}"; do
 
             original="photos/${thumb#thumbs/}"
 
@@ -226,9 +247,9 @@ jobs:
 
           find thumbs -type d -empty -delete 2>/dev/null || true
 
-      # =========================
+      # =========================================
       # 提交
-      # =========================
+      # =========================================
       - name: 提交更改
         run: |
           git config user.name "github-actions[bot]"
@@ -240,14 +261,11 @@ jobs:
 
           git commit -m "更新相册 [skip ci]"
 
-          # =========================
-          # 保留你的 rebase 方案
-          # =========================
           git fetch origin main
 
           git rebase origin/main || (
             git rebase --abort
-            echo "Rebase 冲突，等待下次定时任务重试"
+            echo "Rebase 冲突，等待下次定时任务"
             exit 0
           )
 
