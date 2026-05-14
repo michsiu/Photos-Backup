@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上传照片</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, sans-serif; background: #111; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .box { background: #1a1a1a; padding: 40px; border-radius: 16px; width: 100%; max-width: 480px; }
+  h2 { text-align: center; margin-bottom: 24px; }
+  .drop { border: 2px dashed #444; border-radius: 12px; padding: 50px 20px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: border-color 0.3s; }
+  .drop:hover, .drop.drag { border-color: #fff; }
+  .drop p { color: #888; }
+  #preview { display: none; max-width: 100%; max-height: 200px; margin: 0 auto 20px; border-radius: 8px; }
+  button { width: 100%; padding: 14px; background: #fff; color: #000; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #status { text-align: center; margin-top: 16px; font-size: 14px; }
+  .ok { color: #4ade80; }
+  .err { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>📤 上传照片</h2>
+  <div class="drop" id="dropZone">
+    <p>拖拽照片到这里</p>
+    <p style="font-size:14px;margin-top:6px;">或点击选择</p>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+  </div>
+  <img id="preview" alt="预览">
+  <button id="uploadBtn" disabled>上传</button>
+  <div id="status"></div>
+</div>
+
+<script>
+const drop = document.getElementById('dropZone');
+const input = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const btn = document.getElementById('uploadBtn');
+const status = document.getElementById('status');
+
+let files = [];
+
+drop.addEventListener('click', () => input.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('drag');
+  handle(e.dataTransfer.files);
+});
+input.addEventListener('change', e => handle(e.target.files));
+
+function handle(list) {
+  files = Array.from(list);
+  if (files.length) {
+    btn.disabled = false;
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(files[0]);
+    drop.querySelector('p').textContent = `已选择 ${files.length} 张`;
+  }
+}
+
+btn.addEventListener('click', async () => {
+  btn.disabled = true;
+  status.innerHTML = '<p>上传中…</p>';
+  for (const f of files) {
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      status.innerHTML += data.success
+        ? `<p class="ok">✅ ${f.name}</p>`
+        : `<p class="err">❌ ${f.name} ${data.error}</p>`;
+    } catch {
+      status.innerHTML += `<p class="err">❌ ${f.name} 网络错误</p>`;
+    }
+  }
+  btn.disabled = false;
+  files = [];
+  drop.querySelector('p').textContent = '拖拽照片到这里';
+  preview.style.display = 'none';
+});
+</script>
+</body>
+</html>
