@@ -56,19 +56,23 @@ jobs:
             mkdir -p "$target_dir"
             mv "$img" "$target_dir/$hashname"
 
-            python3 << PYEOF
-import json
-import os
+            export ORIGINAL_NAME="$img"
+            export HASH_NAME="$hashname"
+            export YEAR="$year"
+            export FULL_DATE="$full_date"
+            export SHA256="$sha256"
 
-original_name = """$img"""
+            python3 << 'PYEOF'
+import json, os
+
 entry = {
-    "filename": original_name,
-    "path": "$year/$hashname",
-    "url": "/photos/$year/$hashname",
-    "thumbnail": "/thumbs/$year/$hashname",
-    "year": "$year",
-    "date": "$full_date",
-    "sha256": "$sha256"
+    "filename": os.environ['ORIGINAL_NAME'],
+    "path": f"{os.environ['YEAR']}/{os.environ['HASH_NAME']}",
+    "url": f"/photos/{os.environ['YEAR']}/{os.environ['HASH_NAME']}",
+    "thumbnail": f"/thumbs/{os.environ['YEAR']}/{os.environ['HASH_NAME']}",
+    "year": os.environ['YEAR'],
+    "date": os.environ['FULL_DATE'],
+    "sha256": os.environ['SHA256']
 }
 
 json_path = "page/photos.json"
@@ -78,7 +82,7 @@ if os.path.exists(json_path):
 else:
     data = {}
 
-data["$hashname"] = entry
+data[os.environ['HASH_NAME']] = entry
 
 with open(json_path, "w") as f:
     json.dump(data, f, ensure_ascii=False, indent=2)
