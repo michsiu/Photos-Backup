@@ -54,7 +54,7 @@ for root, dirs, files in os.walk('photos'):
                 'sha256': os.path.splitext(f)[0]
             }
 
-with open('page/photos.json', 'w', encoding='utf-8') as f:
+with open('photos.json', 'w', encoding='utf-8') as f:
 
     json.dump(
         photos,
