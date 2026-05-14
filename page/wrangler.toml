@@ -14,5 +14,5 @@ enabled = true
   head_sampling_rate = 1
 
 [assets]
-directory = "./public"
+directory = "./page"
 binding = "ASSETS"
