@@ -42,7 +42,7 @@ jobs:
           mkdir -p thumbs
           mkdir -p page
 
-     - name: 归档照片并更新 JSON
+      - name: 归档照片并更新 JSON
         run: |
           shopt -s nullglob
 
@@ -54,6 +54,7 @@ jobs:
             hashname="$sha256.$ext"
 
             exif_date=$(identify -format '%[EXIF:DateTimeOriginal]' "$img" 2>/dev/null)
+
             if [ -n "$exif_date" ]; then
               year=$(echo "$exif_date" | cut -d: -f1)
               full_date=$(echo "$exif_date" | cut -d' ' -f1 | tr ':' '-')
@@ -64,6 +65,7 @@ jobs:
 
             target_dir="photos/$year"
             mkdir -p "$target_dir"
+
             mv "$img" "$target_dir/$hashname"
 
             export ORIGINAL_NAME="$img"
@@ -73,6 +75,7 @@ jobs:
             export SHA256="$sha256"
 
             python3 scripts/build_entry.py
+
             echo "归档: $img → $year/$hashname"
           done
 
@@ -86,19 +89,14 @@ jobs:
           \) | while read img; do
 
             relative_path="${img#photos/}"
-
             thumb_path="thumbs/$relative_path"
-
             thumb_dir=$(dirname "$thumb_path")
 
             mkdir -p "$thumb_dir"
 
             if [ ! -f "$thumb_path" ]; then
-
               convert "$img" -resize 400x -quality 80 "$thumb_path"
-
               echo "缩略图: $relative_path"
-
             fi
 
           done
@@ -106,11 +104,8 @@ jobs:
       - name: 清理多余缩略图
         run: |
           find thumbs/ -type f | while read thumb; do
-
             original="photos/${thumb#thumbs/}"
-
             [ -f "$original" ] || rm "$thumb"
-
           done
 
           find thumbs/ -type d -empty -delete 2>/dev/null || true
@@ -118,7 +113,6 @@ jobs:
       - name: 提交所有更改
         run: |
           git config user.name "github-actions[bot]"
-
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add photos/ thumbs/ photos.json
