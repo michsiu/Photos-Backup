@@ -11,8 +11,7 @@ on:
       - '*.JPEG'
       - '*.PNG'
       - '*.WEBP'
-    paths-ignore:
-      - '.github/**'
+
   workflow_dispatch:
 
 jobs:
