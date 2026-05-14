@@ -14,7 +14,7 @@ export default {
       });
     }
 
-    // 代理 GitHub 私有仓库图片
+    // API: 代理图片
     if (path.startsWith('/api/photo/') && request.method === 'GET') {
       const filePath = path.replace('/api/photo/', 'photos/');
       const githubUrl = `https://raw.githubusercontent.com/${env.GITHUB_REPO}/${env.GITHUB_BRANCH}/${filePath}`;
@@ -37,7 +37,7 @@ export default {
       return new Response(response.body, { headers });
     }
 
-    // 上传照片到 GitHub 仓库根目录
+    // API: 上传照片
     if (path === '/api/upload' && request.method === 'POST') {
       const formData = await request.formData();
       const file = formData.get('file');
@@ -79,6 +79,33 @@ export default {
       });
     }
 
-    return new Response('Not Found', { status: 404 });
+    // 静态文件: 从 GitHub 读取 page/ 目录下的文件
+    let filePath = path === '/' ? 'page/index.html' : `page${path}`;
+    const staticUrl = `https://raw.githubusercontent.com/${env.GITHUB_REPO}/${env.GITHUB_BRANCH}/${filePath}`;
+
+    const staticResponse = await fetch(staticUrl, {
+      headers: {
+        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'User-Agent': 'Cloudflare-Worker'
+      }
+    });
+
+    if (!staticResponse.ok) {
+      return new Response('Not Found', { status: 404 });
+    }
+
+    const headers = new Headers(staticResponse.headers);
+    headers.set('Access-Control-Allow-Origin', '*');
+
+    // 根据文件类型设置 Content-Type
+    if (filePath.endsWith('.html')) headers.set('Content-Type', 'text/html; charset=utf-8');
+    else if (filePath.endsWith('.css')) headers.set('Content-Type', 'text/css');
+    else if (filePath.endsWith('.js')) headers.set('Content-Type', 'application/javascript');
+    else if (filePath.endsWith('.json')) headers.set('Content-Type', 'application/json');
+    else if (filePath.endsWith('.png')) headers.set('Content-Type', 'image/png');
+    else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) headers.set('Content-Type', 'image/jpeg');
+    else if (filePath.endsWith('.webp')) headers.set('Content-Type', 'image/webp');
+
+    return new Response(staticResponse.body, { headers });
   }
 };
