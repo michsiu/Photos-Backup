@@ -2545,5 +2545,23 @@
     "year": "2026",
     "date": "2026-05-15",
     "sha256": "e431f3a4dc8f52663129b32e1c06bec253eaafa3065ac76f040a35544df2d66b"
+  },
+  "589d7b07c60e93db2389c3e1193d894695e622a9946307e71a07d1174a2b9cf9.jpeg": {
+    "filename": "1040g2sg31bi4s0pqgm5g5ob6k44gj01oe204cl8!nd_dft_wlteh_jpg_3.jpeg",
+    "path": "2025/589d7b07c60e93db2389c3e1193d894695e622a9946307e71a07d1174a2b9cf9.jpeg",
+    "url": "/photos/2025/589d7b07c60e93db2389c3e1193d894695e622a9946307e71a07d1174a2b9cf9.jpeg",
+    "thumbnail": "/thumbs/2025/589d7b07c60e93db2389c3e1193d894695e622a9946307e71a07d1174a2b9cf9.jpeg",
+    "year": "2025",
+    "date": "2025-12-04",
+    "sha256": "589d7b07c60e93db2389c3e1193d894695e622a9946307e71a07d1174a2b9cf9"
+  },
+  "d90046c6fd38f13fa60d20ea869cdb6907507b83fd65cf7cc19f8c29e45d9b47.jpeg": {
+    "filename": "1040g2sg31bhvoutkgubg5ob6k44gj01oenofiu0!nd_dft_wlteh_jpg_3.jpeg",
+    "path": "2025/d90046c6fd38f13fa60d20ea869cdb6907507b83fd65cf7cc19f8c29e45d9b47.jpeg",
+    "url": "/photos/2025/d90046c6fd38f13fa60d20ea869cdb6907507b83fd65cf7cc19f8c29e45d9b47.jpeg",
+    "thumbnail": "/thumbs/2025/d90046c6fd38f13fa60d20ea869cdb6907507b83fd65cf7cc19f8c29e45d9b47.jpeg",
+    "year": "2025",
+    "date": "2025-12-04",
+    "sha256": "d90046c6fd38f13fa60d20ea869cdb6907507b83fd65cf7cc19f8c29e45d9b47"
   }
 }
